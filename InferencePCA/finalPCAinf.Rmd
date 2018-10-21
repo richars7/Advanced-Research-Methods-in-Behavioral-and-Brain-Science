@@ -1,0 +1,278 @@
+---
+title: "PCA_Inference"
+author: "Richa Singh"
+date: "9/27/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## PCA
+
+Principal Component Analysis is the analysis of data to identify patterns and finding patterns to reduce the dimensions of the dataset with minimal loss of information. Here, our desired outcome of the principal component analysis is to project a feature space (our dataset consisting of n d-dimensional samples) onto a smaller subspace that represents our data well. 
+          PCA gives one map for the rows (called factor scores), and one map for the columns (called loadings).These 2 maps are related, because they both are described by the same components. However, these 2 maps project different kinds of information onto the components, and so they are *interpreted differently*. Factor scores are the coordinates of the row observations. They are interpreted by the distances between them, and their distance from the origin. Loadings describe the column variables. Loadings are interpreted by the angle between them, and their distance from the origin.
+          The distance from the origin is important in both maps, because squared distance from the mean is inertia. Because of the Pythagorean Theorem, the total information contributed by a data point is also equal to the sum of its squared factor scores.
+
+## Dataset : IBM-HR-Employee-NoAttrition 
+
+The dataset consists of 1233 observations and 32 variables describing the HR-IBM Employees. The variables Sub,Age,Monthly Income,Daily Rate,Hourly Rate, MonthlyRate,DistanceFromeHome,PerformanceRating, Education, JobInvolvement, Joblevel,StockOptionLevel,PercentSalaryHike,TotalWorkingYears,TrainingTimesLastYear,WorkLifeBalance,WorkLifeBalance,YearsAtCompany,YearsInCurrentRole,YearsSinceLastPromotion,YearsWithCurrManager,EnvironmentSatisfaction,JobSatisfaction,RelationshipSatisfaction,Attrition,BusinessTravel,EducationField,Gender,JobRole,MaritalStatus,OverTime are Qualitative variable.
+
+```{r}
+rm(list = ls())
+graphics.off()
+library(ExPosition)
+library(InPosition)
+library(PTCA4CATA)
+library(corrplot)
+library(ggplot2)
+library(data4PCCAR)
+```
+```{r}
+my_data <- read.csv("IBM-HR-Emplyee-NoAttrition.csv")
+rownames(my_data) <- my_data$Subj
+my_data1 <- my_data[sapply(my_data, function(x) !is.factor(x))]
+my_data1 <- subset(my_data1, select=-Subj)
+
+datar <- my_data1[,2:23]
+datae <- my_data[,5]
+```
+## ResearchQuestion
+How do all 1233 employees differ on the variables like Gender type vs Department ? Job level vs MonthlyIncome ? etc.
+
+## Results
+
+## Correlation Plot 
+
+Let's analyze the correlation plot and find the prinicipal components.
+```{r}
+cor.my_data <- cor(datar)
+corrplot(cor.my_data, method = "ellipse")
+a001.corrMap <- recordPlot()
+```
+Because each variable is measured on different units, I choose to center and scale the columns. The rows are color-coded by the DESIGN variable, state.division.
+* `center = TRUE`: substracts the mean from each column 
+* `scale = TRUE`: after centering (or not), scales each column (see the help for different scaling options)
+* `DESIGN`: colors the observations (rows)
+```{r}
+# PCA ----
+resPCA <- epPCA(DATA = datar,
+                scale = 'SS1', # Make to use 'SS1' rather than TRUE
+                DESIGN = datae,
+                graphs =  FALSE # TRUE first pass only
+)
+# Varimax here ----
+testVari    <- data4PCCAR::epVari(resPCA)
+# Inference battery ----
+resPCA.inf <- InPosition::epPCA.inference.battery(DATA = datar,
+                                                  scale = 'SS1', # Make sure to use 'SS1' rather than TRUE
+                                                  DESIGN = datae,
+                                                  graphs =  FALSE # TRUE first pass only
+)
+
+```
+
+## Scree Plot
+
+A Scree Plot is a simple line segment plot that shows the fraction of total variance in the data as explained or represented by each PC.```(In the PCA literature, the plot is called a 'Scree' Plot because it often looks like a 'scree' slope, where rocks have fallen down and accumulated on the side of a mountain.)```The scree plot shows the eigenvalues, the amount of information on each component. The number of components (the dimensionality of the factor space) is min(nrow(DATA), ncol(DATA)) minus 1. Here, min(1233,31)-1 give 30 components. The scree plot is used to determine how many of the components should be interpreted. 
+
+* `plot` draws the line that connects all data points by `type = "l"`
+* The first `points` function draws round purple dots.
+* The second `points` function draws black circles around the dots (just to make it prettier).
+```{r}
+PlotScree(ev = resPCA$ExPosition.Data$eigs, 
+          p.ev =  resPCA.inf$Inference.Data$components$p.vals,
+          title = 'IBM-No-Attririon data Set. Eigenvalues Inference',
+          plotKaiser = TRUE
+)
+
+
+```
+The top 4 compnents can be analyzed.
+
+## The I-set graphs
+
+```{r}
+# a graph of the observations
+# a graph of the observations
+
+my_data1.Imap <- PTCA4CATA::createFactorMap(
+  resPCA$ExPosition.Data$fi,
+  col.points = resPCA$Plotting.Data$fi.col,
+  display.labels = FALSE,
+  alpha.points = .5
+)
+label4Map <- createxyLabels.gen(1,2,
+                                lambda =resPCA$ExPosition.Data$eigs,
+                                tau = resPCA$ExPosition.Data$t)
+a002.Map.I <- my_data1.Imap$zeMap + label4Map
+dev.new()
+print(a002.Map.I)
+
+```
+
+## The J-set graphs
+
+```{r}
+col4J.ibm <- prettyGraphsColorSelection(NCOL(datar))
+baseMap.j <- PTCA4CATA::createFactorMap(resPCA$ExPosition.Data$fj,col.points = col4J.ibm,
+                                        col.labels = col4J.ibm ,
+                                        alpha.points =  .3)
+# arrows
+zeArrows <- addArrows(resPCA$ExPosition.Data$fj , col = col4J.ibm)
+# A graph for the J-set
+b000.aggMap.j <- baseMap.j$zeMap_background + # background layer
+  baseMap.j$zeMap_dots + baseMap.j$zeMap_text +  # dots & labels
+  label4Map + zeArrows
+# We print this Map with the following code
+dev.new()
+print(b000.aggMap.j)
+```
+
+## Correlation Circle
+
+```{r}
+correlationCircle <- correlationPlotter(data_matrix = datar , factor_scores =resPCA$ExPosition.Data$fi , x_axis = 1, y_axis = 2, col = NULL ,pch = NULL, xlab = NULL, ylab = NULL, main = "Correlation Circle", asp = 1) 
+
+```
+
+## Factor Scores for Department Variable
+## Component 1 Vs Component 2
+
+Factor scores are the coordinates of the 1233 rows of the employees on the components. The distances between them show which all employees are the most similar ones. Factor scores (employees) can be color-coded to help interpret the components.
+
+```{r}
+signed.ctrJ <- resPCA$ExPosition.Data$cj * sign(resPCA$ExPosition.Data$fj)
+b003.ctrJ.s.1 <- PrettyBarPlot2(signed.ctrJ[,1],
+                                threshold = 1 / NROW(signed.ctrJ),
+                                font.size = 5,
+                                color4bar = gplots::col2hex(col4J.ibm), # we need hex code
+                                main = 'PCA on the IBM-No-Attririon data Set: Variable Contributions (Signed)',
+                                ylab = 'Contributions',
+                                ylim = c(1.2*min(signed.ctrJ), 1.2*max(signed.ctrJ))
+)
+print(b003.ctrJ.s.1)
+b004.ctrJ.s.2 <- PrettyBarPlot2(signed.ctrJ[,2],
+                                threshold = 1 / NROW(signed.ctrJ),
+                                font.size = 5,
+                                color4bar = gplots::col2hex(col4J.ibm), # we need hex code
+                                main = 'PCA on the IBM-No-Attririon dataSet: Variable Contributions (Signed)',
+                                ylab = 'Contributions',
+                                ylim = c(1.2*min(signed.ctrJ), 1.2*max(signed.ctrJ))
+)
+print(b004.ctrJ.s.2)
+b004.ctrJ.s.3 <- PrettyBarPlot2(signed.ctrJ[,3],
+                                threshold = 1 / NROW(signed.ctrJ),
+                                font.size = 5,
+                                color4bar = gplots::col2hex(col4J.ibm), # we need hex code
+                                main = 'PCA on the IBM-No-Attririon dataSet: Variable Contributions (Signed)',
+                                ylab = 'Contributions',
+                                ylim = c(1.2*min(signed.ctrJ), 1.2*max(signed.ctrJ))
+)
+print(b004.ctrJ.s.3)
+```
+
+## Bootstrap Ratios
+
+```{r}
+BR <- resPCA.inf$Inference.Data$fj.boots$tests$boot.ratios
+laDim = 1
+ba001.BR1 <- PrettyBarPlot2(BR[,laDim],
+                            threshold = 2,
+                            font.size = 5,
+                            color4bar = gplots::col2hex(col4J.ibm),
+                            main = paste0( 'PCA on the IBM-No-Attririon data Set: Bootstrap ratio ',laDim),
+                            ylab = 'Bootstrap ratios'
+                            #ylim = c(1.2*min(BR[,laDim]), 1.2*max(BR[,laDim]))
+)
+print(ba001.BR1)
+#
+laDim = 2
+ba002.BR2 <- PrettyBarPlot2(BR[,laDim],
+                            threshold = 2,
+                            font.size = 5,
+                            color4bar = gplots::col2hex(col4J.ibm),
+                            main = paste0(
+                              'PCA on the IBM-No-Attririon data Set: Bootstrap ratio ',laDim),
+                            ylab = 'Bootstrap ratios'
+)
+print(ba002.BR2)
+laDim = 3
+ba002.BR3 <- PrettyBarPlot2(BR[,laDim],
+                            threshold = 2,
+                            font.size = 5,
+                            main = paste0(
+                              'PCA on the Iris Set: Bootstrap ratio ',laDim),
+                            ylab = 'Bootstrap ratios'
+)
+print(ba002.BR3)
+```
+
+
+```{r}
+#_____________________________________________________________________
+# Group Analysis ----
+# Bootstrap ----
+# Confidence Intervals ----
+# Bootstrap for CI:
+BootCube.Gr <- PTCA4CATA::Boot4Mean(resPCA$ExPosition.Data$fi, 
+                                    design = datae,
+                                    niter = 100,
+                                    suppressProgressBar = TRUE)
+#_____________________________________________________________________
+# Bootstrap ratios ----
+bootRatios.Gr <- boot.ratio.test(BootCube.Gr$BootCube)
+#*********************************************************************
+# eigenvalues: MonteCarlo Approach ----
+# 
+random.eigen <- data4PCCAR::monteCarlo.eigen(X = datar, nIter = 100)
+#
+# eigenvalues: Bootstrap approach
+#
+bootstrap.eigen <- data4PCCAR::boot.eigen(datar, nIter = 100)
+dataMeans <- PTCA4CATA::getMeans(resPCA$ExPosition.Data$fi, datae)
+# a vector of color for the means
+col4data <- resPCA$Plotting.Data$fi.col
+col4Means <- unique(col4data)
+# the map
+MapGroup <- PTCA4CATA::createFactorMap(dataMeans,
+                                       # use the constraint from the main map
+                                       constraints = my_data1.Imap$constraints,
+                                       col.points = col4Means,
+                                       cex = 7,  # size of the dot (bigger)
+                                       col.labels = col4Means,
+                                       text.cex = 6)
+# The map with observations and group means
+a003.Map.I.withMeans <- a002.Map.I +
+  MapGroup$zeMap_dots + MapGroup$zeMap_text
+print(a003.Map.I.withMeans)
+#_____________________________________________________________________
+# Create the ellipses
+# Bootstrapped CI ----
+#_____________________________________________________________________
+# Create Confidence Interval Plots
+# use function MakeCIEllipses from package PTCA4CATA
+GraphElli <- PTCA4CATA::MakeCIEllipses(BootCube.Gr$BootCube[,1:2,],
+                                       names.of.factors = c("Dimension 1","Dimension 2"),
+                                       col = col4Means,
+                                       p.level = .95
+)
+#_____________________________________________________________________
+# create the I-map with Observations, means and confidence intervals
+#
+a004.Map.I.withCI <-  a002.Map.I + MapGroup$zeMap_text +  GraphElli
+#_____________________________________________________________________
+# plot it!
+dev.new()
+print(a004.Map.I.withCI)
+#_____________________________________________________________________
+
+```
+
+
+
+
+
+
+
