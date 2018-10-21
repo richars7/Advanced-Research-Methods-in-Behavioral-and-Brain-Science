@@ -1,4 +1,4 @@
-#Exploratory-Analysis-Using-R
+# Exploratory-Analysis-Using-R
 
 This repository has the code from the analysis on IBM-NoAttrition Dataset using various multivariate techniques such as PCA, CA, MCA, PLS, BADA, DICA and MFA.
 
