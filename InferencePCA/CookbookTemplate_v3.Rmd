@@ -1,0 +1,170 @@
+---
+title: "CookbookTemplate_v3"
+author: "Michael A. Kriegsman"
+date: "September 18, 2017"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ExPosition)
+```
+
+# Method: PCA
+Principal component analysis (PCA) is... 
+
+
+## Data set: state.x77
+State.x77 is... 
+
+```{r data_set}
+head(state.x77)
+```
+
+Create DESIGN variables.
+
+Below, I show you how to work with DESIGN variables and colors. Please Delete our comments, and write your own comments in here.
+
+```{r DESIGN}
+#Create an empty list, called DESIGN
+DESIGN <- list()
+
+#Let's set the group names (labels), and establish which row belongs to which group (as a DESIGN vector, and then as a DESIGN matrix)
+#For now, let's work on a DESIGN on the rows. The DESIGN vairable is called region. 
+#The group names are labeled:
+DESIGN$rows$Region$labels <- unique(state.region) #to see what's here, highlight and run "state.region". Then also highlight and run "unique(state.region)". 
+
+#This variable is pretty easy... the DESIGN vector (a vector that describes which row belongs to which group) is given by state.region
+DESIGN$rows$Region$vec <- state.region
+
+#Convert the vector to a matrix
+DESIGN$rows$Region$mat <- makeNominalData(as.matrix(DESIGN$rows$Region$vec))
+#notice that makeNominalData wants to have a matrix, so we use as.matrix(DESIGN_vector)
+```
+
+
+We also want to work with the colors of the groups.
+
+
+```{r colors_1}
+#One way to pick colors is automatically, like how epPCA does it...
+automatic_colors <- createColorVectorsByDesign(DESIGN$rows$Region$mat)
+#notice that automatic_colors$oc gives the colors for each observation, and automatic_colors$gc gives the colors for each group.
+```
+
+```{r colors_2}
+
+###Make your own colors, and write your own comments ###
+
+#But, instead of being automatic, we often want to select our colors by hand. 
+#Let's just pick 4 colors (you should choose your own)
+DESIGN$rows$Region$color_groups <- c("red", "green", "goldenrod", "#305ABF")
+
+#and let's just look at the colors we've picked, to be sure they're pretty enough
+plot(c(1:4), pch=15, cex=4, col=DESIGN$rows$Region$color_groups)
+#Actually, these are quite ugly, but I'll let you pick your own pretty colors. 
+#But don't show this plot in your cookbook, this is just for you to select colors. 
+
+#Now, we need to create a vector of the group colors, to show which row belongs to which group.
+#One group at a time, let's trade the group names for the color names... 
+### Follow me slowly, and run each line to see what's inside
+
+#First, copy the group names
+DESIGN$rows$Region$color_observ <- as.matrix(DESIGN$rows$Region$vec) #we want to change the factor to a matrix, because they work differently
+
+#Then, for each group, replace the group name with the group's color
+DESIGN$rows$Region$color_observ[which(DESIGN$rows$Region$vec=="South")]         <- DESIGN$rows$Region$color_groups[1]
+DESIGN$rows$Region$color_observ[which(DESIGN$rows$Region$vec=="West")]          <- DESIGN$rows$Region$color_groups[2]
+DESIGN$rows$Region$color_observ[which(DESIGN$rows$Region$vec=="Northeast")]     <- DESIGN$rows$Region$color_groups[3]
+DESIGN$rows$Region$color_observ[which(DESIGN$rows$Region$vec=="North Central")] <- DESIGN$rows$Region$color_groups[4]
+#Be sure you get the group names right, and keep track of which group is which, so you can create your legend!
+```
+
+## Results
+Center? Scale?
+
+```{r analyze, echo = TRUE}
+res_pca <- epPCA(state.x77, center = TRUE, scale = TRUE, graphs = FALSE)
+```
+
+
+## Plots
+
+PCA gives... THESE plots...
+
+### Scree Plot
+
+
+```{r scree plot}
+name_the_scree <- plot(res_pca$ExPosition.Data$eigs,
+                       ylab = "Eigenvalues",
+                       xlab = "Compnents",
+                       type = "l",
+                       main = "",
+                       ylim = c(-1, max(res_pca$ExPosition.Data$eigs)))
+points(res_pca$ExPosition.Data$eigs, cex = 2, pch = 19, col = "darkorchid4")
+points(res_pca$ExPosition.Data$eigs, cex = 2, pch = 21, col = "black")
+
+```
+
+### Factor scores
+Factor scores are the coordinates of the 50 states on the components. The distances between them show which states are most similar. Factor scores (states) can be color-coded to help interpret the components.
+
+You may or may not want to leave display_names=TRUE... 
+
+```{r factor scores}
+name_the_plot <- prettyPlot(data_matrix = res_pca$ExPosition.Data$fi,  
+                            dev.new=FALSE,
+                            main = "State.x77 Row Factor Scores",
+                            x_axis = 1, y_axis = 2, 
+                            contributionCircles = FALSE, contributions = res_pca$ExPosition.Data$ci, 
+                            display_points = TRUE, pch = 21, cex = 1.2, col = DESIGN$rows$Region$color_observ, 
+                            display_names = TRUE, 
+                            xlab = paste0("Component 1 Inertia: ", round(res_pca$ExPosition.Data$t[1],3), "%"),
+                            ylab = paste0("Component 2 Inertia: ", round(res_pca$ExPosition.Data$t[2],3), "%")
+                            )
+
+legend(x="topright", pch = 15, legend = DESIGN$rows$Region$labels, col=DESIGN$rows$Region$color_groups)
+```
+
+
+
+
+
+
+
+* Component 1: 
+
+* Component 2: 
+
+* Component 3? Include whatever is relevant.
+
+### Loadings
+Loadings are...
+
+```{r}
+name_another_plot <- prettyPlot(data_matrix = res_pca$ExPosition.Data$fj,  
+                            dev.new=FALSE,
+                            main = "State.x77 Column Loadings",
+                            x_axis = 1, y_axis = 2, 
+                            contributionCircles = FALSE, contributions = res_pca$ExPosition.Data$cj, 
+                            display_points = TRUE, pch = 21, cex = 1.2, col = res_pca$Plotting.Data$fj.col, 
+                            display_names = TRUE, 
+                            xlab = paste0("Component 1 Inertia: ", round(res_pca$ExPosition.Data$t[1],3), "%"),
+                            ylab = paste0("Component 2 Inertia: ", round(res_pca$ExPosition.Data$t[2],3), "%")
+                            )
+```
+
+* Component 1: 
+
+* Component 2: 
+
+* Component 3? Include whatever is relevant.
+
+### Include other relevant plots...
+
+
+##Conclusions

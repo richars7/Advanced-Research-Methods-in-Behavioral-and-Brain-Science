@@ -1,0 +1,103 @@
+---
+title: "A Function for the Scree"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = "" )
+```
+
+
+```{r}
+# Clean Start
+rm(list = ls())
+graphics.off()
+```
+
+We need the `Exposition` library for this example.
+
+```{r}
+library(ExPosition)
+```
+
+## R Markdown
+
+
+Below is the function for plotting the scree.
+
+
+```{r plotScree}
+
+# --------------------------------------------------------------------
+# Create a function to plot the scree
+# ev: the eigen values to plot. no default
+# max.ev the max eigen value
+#        needed because ExPosition does not return all ev
+#        but only the requested one. but return all tau
+#        so if max.ev is specified, it is used to recompute
+#        all eigenvalues
+# p.ep: the probabilities associated to the ev
+# alpha: threshold for significance. Default = .05
+# col.ns  = color for ns ev. Default is Green
+# col.sig = color for significant ev. Default is Violet
+PlotScree <- function(ev,p.ev=NULL,max.vp=NULL,
+                      alpha=.05,
+                      col.ns = '#006D2C',col.sig='#54278F',
+                      title = "Explained Variance per Dimension"
+){
+  # percentage of inertia
+  val.tau = (100*ev/sum(ev))
+  Top.y = ceiling(max(val.tau)*.1)*10
+  # if ev is already a percentage convert it back
+  if (!is.null(max.vp)){ev = ev*(max.vp/ev[1])}
+  #
+  par(mar=c(5,6,4,4))
+  # plot.window(xlim = c(0, length(val.tau)+5),
+  #         ylim = c(0,Top.y),asp = .6)
+  plot(x = seq(1,length(val.tau)),y=val.tau,xlab='Dimensions',
+       ylab = 'Percentage of Explained Variance',
+       main = title,
+       type = 'l', col = col.ns, lwd= 1,
+       xlim = c(1, length(val.tau)),
+       ylim = c(0,Top.y)
+  )
+  points(x = seq(1,length(val.tau)),y=val.tau,
+         pch=16,  cex=1, col = col.ns, lwd= 2.5
+  )
+  if (!is.null(p.ev)){# plot the significant vp if exist
+    # Plot the significant factors
+    signi.vp = which(p.ev < alpha)
+    lines(x = seq(1,length(signi.vp)),y=val.tau[signi.vp],
+          type = 'l', col = col.sig, lwd= 1.5
+    )
+    points(x = seq(1,length(signi.vp)),y=val.tau[signi.vp],
+           pch=16,  cex=1.5, col = col.sig, lwd= 3.5)
+  } # end of plot significant vp
+  par(new = TRUE)
+  par(mar=c(5,6,4,4)+.5)
+  le.max.vp = Top.y*(ev[1]/val.tau[1])
+  plot(ev, ann=FALSE,axes=FALSE,type="n",#line=3,
+       ylim = c(0,le.max.vp))
+  mtext("Inertia Extracted by the Components",side=4,line=3)
+  axis(4)
+} # end of function PlotScree
+
+# --------------------------------------------------------------------
+```
+
+## A Plot of the Scree of the  Eigenvalues
+
+You will first need to "source" the function before you can use it..
+An example is of how to use it with `Rmarkdown` is shown below:
+
+```{r pressure, echo= TRUE}
+# An Example of Plot Scree
+# 
+data(wines2012)
+ResPCA4Wines  <- epPCA(wines2012$data, scale = FALSE, graphs = FALSE)
+EigenValues <- ResPCA4Wines$ExPosition.Data$eigs
+
+PlotScree(EigenValues)
+#PlotScree(EigenValues[-length(EigenValues)])
+```
+
