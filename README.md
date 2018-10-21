@@ -8,6 +8,7 @@ About the Dataset: IBM-NoAttrition Dataset
 
 Explore important questions such as ‘show me a breakdown of distance from home by job role’ or ‘compare average monthly income by education’. This is a fictional data set created by IBM data scientists.
 Note:
+
 Education: 1 'Below College' 2 'College' 3 'Bachelor' 4 'Master' 5 'Doctor'
 
 EnvironmentSatisfaction: 1 'Low' 2 'Medium' 3 'High' 4 'Very High'
