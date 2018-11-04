@@ -1,0 +1,562 @@
+---
+title: "PLS"
+author: "Richa Singh"
+date: "10/25/2018"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rm(list = ls())
+graphics.off()
+```
+
+## PLS
+
+
+
+
+
+## Dataset : IBM-HR-Employee-NoAttrition 
+
+The dataset consists of 1233 observations and 32 variables describing the HR-IBM Employees. The variables Sub,Age,Monthly Income,Daily Rate,Hourly Rate, MonthlyRate,DistanceFromeHome,PerformanceRating, Education, JobInvolvement, Joblevel,StockOptionLevel,PercentSalaryHike,TotalWorkingYears,TrainingTimesLastYear,WorkLifeBalance,WorkLifeBalance,YearsAtCompany,YearsInCurrentRole,YearsSinceLastPromotion,YearsWithCurrManager,EnvironmentSatisfaction,JobSatisfaction,RelationshipSatisfaction,Attrition,BusinessTravel,EducationField,Gender,JobRole,MaritalStatus,OverTime are Qualitative variable.
+
+```{r}
+data <- read.csv("IBM-HR-Emplyee-NoAttrition.csv")
+data1 <- data[,11:15] 
+data2 <- data[,22:29] 
+data2 <- data2[ -c(4) ]
+data$Gender <- as.numeric(as.factor(data$Gender))
+data$Department <- as.numeric(as.factor(data$Department))
+data$JobRole <- as.numeric(as.factor(data$JobRole))
+data$EducationField <- as.numeric(as.factor(data$EducationField))
+design1 <- data$Gender
+design2 <- data$Department
+design3 <- data$JobRole
+design4 <- data$EducationField
+```
+
+## Correlation Plot
+
+```{r}
+corrplot::corrplot(cor(data1,data2))
+```
+
+## Scree Plot
+
+A Scree Plot is a simple line segment plot that shows the fraction of total variance in the data as explained or represented by each PC.```(In the PCA literature, the plot is called a 'Scree' Plot because it often looks like a 'scree' slope, where rocks have fallen down and accumulated on the side of a mountain.)```The scree plot shows the eigenvalues, the amount of information on each component. The number of components (the dimensionality of the factor space) is min(nrow(DATA), ncol(DATA)) minus 1.
+
+```{r}
+library(TExPosition)
+resPLSC <- tepPLS(data1,data2,DESIGN = design1,graphs = FALSE)
+```
+
+```{r}
+resPerm4PLSC <- perm4PLSC(data1, # First Data matrix 
+                          data2, # Second Data matrix
+                          nIter = 1000 # How mny iterations
+                          )
+```
+
+```{r}
+PlotScree(ev = resPLSC$TExPosition.Data$eigs, 
+          p.ev = resPerm4PLSC$pEigenvalues,
+          title = 'IBM-No-Attririon data Set. Eigenvalues Inference',
+          plotKaiser = TRUE
+)
+```
+## Permutation test for eigen-values
+
+```{r}
+zeDim = 1
+pH1 <- prettyHist(
+  distribution = resPerm4PLSC$permEigenvalues[,zeDim], 
+           observed = resPerm4PLSC$pEigenvalues[zeDim], 
+           xlim = c(-2, 2), # needs to be set by hand
+           breaks = 20,
+           border = "brown", 
+           main = paste0("Permutation Test for Eigenvalue ",zeDim),
+           xlab = paste0("Eigenvalue ",zeDim), 
+           ylab = "", 
+           counts = FALSE, 
+           cutoffs = c( 0.975))
+b005.PermTest <- recordPlot()
+```
+## Factor Maps for latent Variables lx vs ly for Gender type
+```{r}
+library(data4PCCAR)
+library(PTCA4CATA)
+library(corrplot)
+library(ggplot2)
+library(ExPosition)
+library(InPosition)
+constraints1 <- minmaxHelper(mat1 = resPLSC$TExPosition.Data$lx, mat2  = resPLSC$TExPosition.Data$ly)
+
+df <- as.data.frame(cbind(resPLSC$TExPosition.Data$lx[,1],resPLSC$TExPosition.Data$ly[,1]))
+dataMeans <- getMeans(df, design1)
+col4data <- factor(design1)
+col4Means <- c("#F8766D", "#00BFC4")
+MapGroup <- createFactorMap(dataMeans,
+                            # use the constraint from the main map
+                            constraints = constraints1,
+                            col.points = col4Means,
+                            cex = 7,  # size of the dot (bigger)
+                            col.labels = col4Means,
+                            text.cex = 6)
+
+GraphTI.Hull <- PTCA4CATA::MakeToleranceIntervals(df,
+                                                  design = design1,
+                                                  # line below is needed
+                                                  names.of.factors =  c("Dim1","Dim2"), # needed 
+                                                  col = col4Means,
+                                                  line.size = .50, 
+                                                  line.type = 3,
+                                                  alpha.ellipse = .2,
+                                                  alpha.line    = .4,
+                                                  p.level       = .75)
+
+z <- ggplot(data, aes(x=resPLSC$TExPosition.Data$lx[,1], y=resPLSC$TExPosition.Data$ly[,1])) + geom_point(aes(colour=col4data)) + MapGroup$zeMap_dots + MapGroup$zeMap_text + GraphTI.Hull
+print(z)
+```
+
+```{r}
+df1 <- as.data.frame(cbind(resPLSC$TExPosition.Data$lx[,2],resPLSC$TExPosition.Data$ly[,2]))
+dataMeans1 <- getMeans(df1, design1)
+col4data1 <- factor(design1)
+col4Means1 <-  c("#F8766D", "#00BFC4")
+MapGroup1 <- createFactorMap(dataMeans1,
+                            # use the constraint from the main map
+                            constraints = constraints1,
+                            col.points = col4Means1,
+                            cex = 7,  # size of the dot (bigger)
+                            col.labels = col4Means1,
+                            text.cex = 6)
+
+GraphTI.Hull1 <- PTCA4CATA::MakeToleranceIntervals(df1,
+                                                  design = design1,
+                                                  # line below is needed
+                                                  names.of.factors =  c("Dim1","Dim2"), # needed 
+                                                  col = col4Means1,
+                                                  line.size = .50, 
+                                                  line.type = 3,
+                                                  alpha.ellipse = .2,
+                                                  alpha.line    = .4,
+                                                  p.level       = .75)
+
+z1 <- ggplot(data, aes(x=resPLSC$TExPosition.Data$lx[,2], y=resPLSC$TExPosition.Data$ly[,2])) + geom_point(aes(colour= col4data1)) + MapGroup1$zeMap_dots + MapGroup1$zeMap_text + GraphTI.Hull1
+print(z1)
+```
+
+## Factor Maps for J
+
+```{r}
+baseMap.j2 <- createFactorMap(resPLSC$TExPosition.Data$fi,constraints = constraints,
+                            col.points = resPLSC$Plotting.Data$fi.col, axis1 = 1, axis2 = 2,
+                            cex = 1, pch = 20,
+                            display.labels = TRUE
+)
+a2 <- baseMap.j2$zeMap + baseMap.j2$zeMap_dots 
+print(a2)
+
+```
+
+
+```{r}
+baseMap.j3 <- createFactorMap(resPLSC$TExPosition.Data$fj,constraints = constraints,
+                            col.points = resPLSC$Plotting.Data$fj.col, axis1 = 1, axis2 = 2,
+                            cex = 1, pch = 20,
+                            display.labels = TRUE
+)
+a1 <- baseMap.j3$zeMap + baseMap.j3$zeMap_dots 
+print(a1)
+
+```
+## Factor Map for latent variables lx vs ly for Departmenttype(1st Component)
+
+```{r}
+resPLSC1 <- tepPLS(data1,data2,DESIGN = design2,graphs = FALSE)
+```
+
+```{r}
+constraints2 <- minmaxHelper(mat1 = resPLSC1$TExPosition.Data$lx, mat2  = resPLSC1$TExPosition.Data$ly)
+df2 <- as.data.frame(cbind(resPLSC1$TExPosition.Data$lx[,1],resPLSC1$TExPosition.Data$ly[,1]))
+dataMeans2 <- getMeans(df2, design2)
+col4data2 <- factor(design2)
+col4Means2 <-  c("#F8766D" ,"#00BA38" ,"#619CFF")
+MapGroup2 <- createFactorMap(dataMeans2,
+                            # use the constraint from the main map
+                            constraints = constraints2,
+                            col.points = col4Means2,
+                            cex = 7,  # size of the dot (bigger)
+                            col.labels = col4Means2,
+                            text.cex = 6)
+GraphTI.Hull2 <- PTCA4CATA::MakeToleranceIntervals(df2,
+                                                  design = design2,
+                                                  # line below is needed
+                                                  names.of.factors =  c("Dim1","Dim2"), # needed 
+                                                  col = col4Means2,
+                                                  line.size = .50, 
+                                                  line.type = 3,
+                                                  alpha.ellipse = .2,
+                                                  alpha.line    = .4,
+                                                  p.level       = .75)
+
+
+
+z2 <- ggplot(data, aes(x=resPLSC1$TExPosition.Data$lx[,1], y=resPLSC1$TExPosition.Data$ly[,1])) + geom_point(aes(colour = factor(design2))) + MapGroup2$zeMap_dots + MapGroup2$zeMap_text + GraphTI.Hull2 + xlab("lx 1st dimension") +
+  ylab("ly 1st dimension") +
+  ggtitle("lx vs ly for Department Type 1st dimension")
+print(z2)
+```
+
+## Factor Map for latent variables lx vs ly for Departmenttype(2st Component)
+
+```{r}
+df3 <- as.data.frame(cbind(resPLSC1$TExPosition.Data$lx[,2],resPLSC1$TExPosition.Data$ly[,2]))
+dataMeans3 <- getMeans(df3, design2)
+col4data3 <- factor(design2)
+col4Means3 <- c("#F8766D" ,"#00BA38" ,"#619CFF")
+MapGroup3 <- createFactorMap(dataMeans3,
+                            # use the constraint from the main map
+                            constraints = constraints2,
+                            col.points = col4Means3,
+                            cex = 7,  # size of the dot (bigger)
+                            col.labels = col4Means3,
+                            text.cex = 6)
+GraphTI.Hull3 <- PTCA4CATA::MakeToleranceIntervals(df3,
+                                                  design = design2,
+                                                  # line below is needed
+                                                  names.of.factors =  c("Dim1","Dim2"), # needed 
+                                                  col = col4Means3,
+                                                  line.size = .50, 
+                                                  line.type = 3,
+                                                  alpha.ellipse = .2,
+                                                  alpha.line    = .4,
+                                                  p.level       = .75)
+
+
+z3 <- ggplot(data, aes(x=resPLSC1$TExPosition.Data$lx[,2], y=resPLSC1$TExPosition.Data$ly[,2])) + geom_point(aes(colour = factor(design2))) + MapGroup3$zeMap_dots + MapGroup3$zeMap_text + GraphTI.Hull3 + xlab("lx 2nd dimension") +
+  ylab("ly 2nd dimension") +
+  ggtitle("lx vs ly for Department Type 2nd dimension")
+print(z3)
+```
+
+## Factor Map for latent variables lx vs ly for JObRole(1st Component)
+
+```{r}
+resPLSC2 <- tepPLS(data1,data2,DESIGN = design3,graphs = FALSE)
+```
+
+```{r}
+constraints3 <- minmaxHelper(mat1 = resPLSC2$TExPosition.Data$lx, mat2  = resPLSC2$TExPosition.Data$ly)
+df4 <- as.data.frame(cbind(resPLSC2$TExPosition.Data$lx[,1],resPLSC2$TExPosition.Data$ly[,1]))
+dataMeans4 <- getMeans(df4, design3)
+col4data4 <- factor(design3)
+col4Means4 <- c("#F8766D", "#D39200" ,"#93AA00" ,"#00BA38", "#00C19F", "#00B9E3", "#619CFF" ,"#DB72FB", "#FF61C3")
+MapGroup4 <- createFactorMap(dataMeans4,
+                            # use the constraint from the main map
+                            constraints = constraints3,
+                            col.points = col4Means4,
+                            cex = 7,  # size of the dot (bigger)
+                            col.labels = col4Means4,
+                            text.cex = 6)
+BootCube.Gr4 <- Boot4Mean(df4, 
+                         design = design3,
+                         niter = 100,
+                         suppressProgressBar = TRUE)
+
+#GraphElli4 <- MakeCIEllipses(BootCube.Gr4$BootCube,
+#                            names.of.factors = c("Dimension 1","Dimension 2"),
+#                            col = col4Means4 ,p.level = .95
+#)
+
+GraphTI.Hull4 <- PTCA4CATA::MakeToleranceIntervals(df4,
+                                                  design = design3,
+                                                  # line below is needed
+                                                  names.of.factors =  c("Dim1","Dim2"), # needed 
+                                                  col = col4Means4,
+                                                  line.size = .50, 
+                                                  line.type = 3,
+                                                  alpha.ellipse = .2,
+                                                  alpha.line    = .4,
+                                                  p.level       = .75)
+
+z4 <- ggplot(data, aes(x = resPLSC2$TExPosition.Data$lx[,1], y = resPLSC2$TExPosition.Data$ly[,1])) +
+  geom_point(aes(color = col4data4)) + MapGroup4$zeMap_dots + MapGroup4$zeMap_text 
+#+ GraphTI.Hull4 
+#+ GraphElli4
+
+print(z4)
+
+
+```
+
+## Factor Map for latent variables lx vs ly for JObRole(2nd Component)
+
+```{r}
+df5 <- as.data.frame(cbind(resPLSC2$TExPosition.Data$lx[,2],resPLSC2$TExPosition.Data$ly[,2]))
+dataMeans5 <- getMeans(df5, design3)
+col4data5 <- factor(design3)
+col4Means5 <- c("#F8766D", "#D39200" ,"#93AA00" ,"#00BA38", "#00C19F", "#00B9E3", "#619CFF" ,"#DB72FB", "#FF61C3")
+MapGroup5 <- createFactorMap(dataMeans5,
+                            # use the constraint from the main map
+                            constraints = constraints3,
+                            col.points = col4Means5,
+                            cex = 7,  # size of the dot (bigger)
+                            col.labels = col4Means5,
+                            text.cex = 6)
+GraphTI.Hull5 <- PTCA4CATA::MakeToleranceIntervals(df5,
+                                                  design = design3,
+                                                  # line below is needed
+                                                  names.of.factors =  c("Dim1","Dim2"), # needed 
+                                                  col = col4Means5,
+                                                  line.size = .50, 
+                                                  line.type = 3,
+                                                  alpha.ellipse = .2,
+                                                  alpha.line    = .4,
+                                                  p.level       = .75)
+
+
+z5 <- ggplot(data, aes(x = resPLSC2$TExPosition.Data$lx[,2], y = resPLSC2$TExPosition.Data$ly[,2])) +
+  geom_point(aes(color = factor(design3))) + MapGroup5$zeMap_dots + MapGroup5$zeMap_text + GraphTI.Hull5
+
+print(z5)
+```
+
+## Factor Map for latent variables lx vs ly  for EducationField(1st Component)
+
+```{r}
+resPLSC3 <- tepPLS(data1,data2,DESIGN = design4,graphs = FALSE)
+```
+
+```{r}
+constraints4 <- minmaxHelper(mat1 = resPLSC3$TExPosition.Data$lx, mat2  = resPLSC3$TExPosition.Data$ly)
+df6 <- as.data.frame(cbind(resPLSC3$TExPosition.Data$lx[,1],resPLSC3$TExPosition.Data$ly[,1]))
+dataMeans6 <- getMeans(df6, design4)
+col4data6 <- factor(design4)
+col4Means6 <- c("#F8766D" ,"#B79F00" ,"#00BA38" ,"#00BFC4" ,"#619CFF", "#F564E3")
+MapGroup6 <- createFactorMap(dataMeans6,
+                            # use the constraint from the main map
+                            constraints = constraints4,
+                            col.points = col4Means6,
+                            cex = 7,  # size of the dot (bigger)
+                            col.labels = col4Means6,
+                            text.cex = 6)
+GraphTI.Hull6 <- PTCA4CATA::MakeToleranceIntervals(df6,
+                                                  design = design4,
+                                                  # line below is needed
+                                                  names.of.factors =  c("Dim1","Dim2"), # needed 
+                                                  col = col4Means6,
+                                                  line.size = .50, 
+                                                  line.type = 3,
+                                                  alpha.ellipse = .2,
+                                                  alpha.line    = .4,
+                                                  p.level       = .75)
+
+
+
+z6 <- ggplot(data, aes(x=resPLSC3$TExPosition.Data$lx[,1], y=resPLSC3$TExPosition.Data$ly[,1])) + geom_point(aes(color = factor(design4))) + MapGroup6$zeMap_dots + MapGroup6$zeMap_text + GraphTI.Hull6
+print(z6)
+```
+
+## Factor Map for latent variables lx vs ly  for EducationField(2nd Component)
+
+```{r}
+df7 <- as.data.frame(cbind(resPLSC3$TExPosition.Data$lx[,2],resPLSC3$TExPosition.Data$ly[,2]))
+dataMeans7 <- getMeans(df7, design4)
+col4data7 <- factor(design4)
+col4Means7 <- c("#F8766D" ,"#B79F00" ,"#00BA38" ,"#00BFC4" ,"#619CFF", "#F564E3")
+MapGroup7 <- createFactorMap(dataMeans7,
+                            # use the constraint from the main map
+                            constraints = constraints4,
+                            col.points = col4Means7,
+                            cex = 7,  # size of the dot (bigger)
+                            col.labels = col4Means7,
+                            text.cex = 6)
+
+GraphTI.Hull7 <- PTCA4CATA::MakeToleranceIntervals(df6,
+                                                  design = design4,
+                                                  # line below is needed
+                                                  names.of.factors =  c("Dim1","Dim2"), # needed 
+                                                  col = col4Means6,
+                                                  line.size = .50, 
+                                                  line.type = 3,
+                                                  alpha.ellipse = .2,
+                                                  alpha.line    = .4,
+                                                  p.level       = .75)
+
+
+z7 <- ggplot(data, aes(x=resPLSC3$TExPosition.Data$lx[,2], y=resPLSC3$TExPosition.Data$ly[,2])) + geom_point(aes(color = factor(design4))) + MapGroup7$zeMap_dots + MapGroup7$zeMap_text+ GraphTI.Hull7
+
+print(z7)
+```
+
+
+## Contributions for Variables 
+
+```{r}
+signed.ctrJ <- resPLSC$TExPosition.Data$cj * sign(resPLSC$TExPosition.Data$fj)
+b003.ctrJ.s.1 <- PrettyBarPlot2(signed.ctrJ[,1],
+                                threshold = 1 / NROW(signed.ctrJ),
+                                font.size = 5,
+                               # color4bar = gplots::col2hex(col4J.ibm), # we need hex code
+                                main = 'IBM-No-Attririon data Set: Variable Contributions (Signed)',
+                                ylab = 'Contributions',
+                                ylim = c(1.2*min(signed.ctrJ), 1.2*max(signed.ctrJ)), horizontal = FALSE
+)
+print(b003.ctrJ.s.1)
+b004.ctrJ.s.2 <- PrettyBarPlot2(signed.ctrJ[,2],
+                                threshold = 1 / NROW(signed.ctrJ),
+                                font.size = 5,
+                               # color4bar = gplots::col2hex(col4J.ibm), # we need hex code
+                                main = 'IBM-No-Attririon dataSet: Variable Contributions (Signed)',
+                                ylab = 'Contributions',
+                                ylim = c(1.2*min(signed.ctrJ), 1.2*max(signed.ctrJ)), horizontal = FALSE
+)
+print(b004.ctrJ.s.2)
+b004.ctrJ.s.3 <- PrettyBarPlot2(signed.ctrJ[,3],
+                                threshold = 1 / NROW(signed.ctrJ),
+                                font.size = 5,
+                               # color4bar = gplots::col2hex(col4J.ibm), # we need hex code
+                                main = 'IBM-No-Attririon dataSet: Variable Contributions (Signed)',
+                                ylab = 'Contributions',
+                                ylim = c(1.2*min(signed.ctrJ), 1.2*max(signed.ctrJ)),horizontal = FALSE
+)
+print(b004.ctrJ.s.3)
+
+```
+
+## Contribution for Rows 
+
+```{r}
+signed.ctri <- resPLSC$TExPosition.Data$ci * sign(resPLSC$TExPosition.Data$fi)
+b003.ctri.s.1 <- PrettyBarPlot2(signed.ctri[,1],
+                                threshold = 1 / NROW(signed.ctri),
+                                font.size = 5,
+                               # color4bar = gplots::col2hex(col4J.ibm), # we need hex code
+                                main = 'IBM-No-Attririon data Set: Rows Contributions (Signed)',
+                                ylab = 'Contributions',
+                                ylim = c(1.2*min(signed.ctri), 1.2*max(signed.ctri)), horizontal = FALSE
+)
+print(b003.ctri.s.1)
+b004.ctri.s.2 <- PrettyBarPlot2(signed.ctri[,2],
+                                threshold = 1 / NROW(signed.ctri),
+                                font.size = 5,
+                               # color4bar = gplots::col2hex(col4J.ibm), # we need hex code
+                                main = 'IBM-No-Attririon dataSet: Rows Contributions (Signed)',
+                                ylab = 'Contributions',
+                                ylim = c(1.2*min(signed.ctri), 1.2*max(signed.ctri)) , horizontal = FALSE
+)
+print(b004.ctri.s.2)
+b004.ctri.s.3 <- PrettyBarPlot2(signed.ctri[,3],
+                                threshold = 1 / NROW(signed.ctri),
+                                font.size = 5,
+                               # color4bar = gplots::col2hex(col4J.ibm), # we need hex code
+                                main = 'IBM-No-Attririon dataSet: Rows Contributions (Signed)',
+                                ylab = 'Contributions',
+                                ylim = c(1.2*min(signed.ctri), 1.2*max(signed.ctri)),horizontal = FALSE
+)
+print(b004.ctri.s.3)
+
+```
+
+## Load the file
+
+```{r}
+file4PLSCfunctions <- 'inferences4PLSC(4).R'
+source(file4PLSCfunctions)
+```
+
+## Bootstrap Ratios for Variables 
+
+```{r}
+resBoot4PLSC <- Boot4PLSC(data1, # First Data matrix 
+                          data2, # Second Data matrix
+                          nIter = 1000, # How many iterations
+                          Fi = resPLSC$TExPosition.Data$fi,
+                          Fj = resPLSC$TExPosition.Data$fj,
+                          nf2keep = 3,
+                          critical.value = 2,
+                          # To be implemented later
+                          # has no effect currently
+                          alphaLevel = .05)
+print(resBoot4PLSC)
+laDim = 1
+ba001.BR1 <- PrettyBarPlot2(resBoot4PLSC$bootRatios.j[,laDim],
+                            threshold = 2,
+                            font.size = 5,
+                            #color4bar = gplots::col2hex(col4J.ibm),
+                            main = paste0( 'IBM-NoAttrition data Set: Bootstrap ratio ',laDim),
+                            ylab = 'Bootstrap ratios'
+                            #ylim = c(1.2*min(BR[,laDim]), 1.2*max(BR[,laDim]))
+)
+print(ba001.BR1)
+#
+laDim = 2
+ba002.BR2 <- PrettyBarPlot2(resBoot4PLSC$bootRatios.j[,laDim],
+                            threshold = 2,
+                            font.size = 5,
+                            #color4bar = gplots::col2hex(col4J.ibm),
+                            main = paste0(
+                              'IBM-NoAttrition data Set: Bootstrap ratio ',laDim),
+                            ylab = 'Bootstrap ratios'
+)
+print(ba002.BR2)
+laDim = 3
+ba002.BR3 <- PrettyBarPlot2(resBoot4PLSC$bootRatios.j[,laDim],
+                            threshold = 2,
+                            font.size = 5,
+                            main = paste0(
+                              'IBM-NoAttrition data Set: Bootstrap ratio ',laDim),
+                            ylab = 'Bootstrap ratios'
+)
+print(ba002.BR3)
+```
+## Bootstrap Ratios for Rows
+
+```{r}
+laDim = 1
+ba001.BR11 <- PrettyBarPlot2(resBoot4PLSC$bootRatios.i[,laDim],
+                            threshold = 2,
+                            font.size = 5,
+                            #color4bar = gplots::col2hex(col4J.ibm),
+                            main = paste0( 'IBM-NoAttrition data Set: Bootstrap ratio ',laDim),
+                            ylab = 'Bootstrap ratios'
+                            #ylim = c(1.2*min(BR[,laDim]), 1.2*max(BR[,laDim]))
+)
+print(ba001.BR11)
+#
+laDim = 2
+ba002.BR21 <- PrettyBarPlot2(resBoot4PLSC$bootRatios.i[,laDim],
+                            threshold = 2,
+                            font.size = 5,
+                            #color4bar = gplots::col2hex(col4J.ibm),
+                            main = paste0(
+                              'IBM-NoAttrition data Set: Bootstrap ratio ',laDim),
+                            ylab = 'Bootstrap ratios'
+)
+print(ba002.BR21)
+laDim = 3
+ba002.BR31 <- PrettyBarPlot2(resBoot4PLSC$bootRatios.i[,laDim],
+                            threshold = 2,
+                            font.size = 5,
+                            main = paste0(
+                              'IBM-NoAttrition data Set: Bootstrap ratio ',laDim),
+                            ylab = 'Bootstrap ratios'
+)
+print(ba002.BR31)
+```
+
+
+## Summary 
+
+
+
+
+
+
