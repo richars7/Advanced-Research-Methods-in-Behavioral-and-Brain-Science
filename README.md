@@ -23,10 +23,10 @@ RelationshipSatisfaction:  1 'Low' 2 'Medium' 3 'High' 4 'Very High'
 
 WorkLifeBalance: 1 'Bad' 2 'Good' 3 'Better' 4 'Best'
 
-# Correlation Plot of the dataset
+### Correlation Plot of the dataset
 ![unnamed-chunk-4-1](https://user-images.githubusercontent.com/25525725/50240641-e7bffd00-038a-11e9-853b-dda3360be6e5.png)
 
-
+### Heat Map of the dataset
 
 
 
