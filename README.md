@@ -23,7 +23,7 @@ RelationshipSatisfaction:  1 'Low' 2 'Medium' 3 'High' 4 'Very High'
 
 WorkLifeBalance: 1 'Bad' 2 'Good' 3 'Better' 4 'Best'
 
-
+![figure-html](unnamed-chunk-4-1.png)
 
 
 
